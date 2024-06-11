@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.erfu.topNews.mapper.HeadlineMapper">
+
+
+
+    <!--业务2:
+    根据查询条件动态查询头条列表信息
+    List<HeadlinePageVo> findByQueryVo(HeadlineQueryVo queryVo);
+    -->
+    <select id="findByQueryVo" resultType="com.erfu.topNews.pojo.vo.HeadlinePageVo">
+        select
+        hid,
+        title,
+        page_views,
+        TIMESTAMPDIFF(HOUR,create_time,now()) pastHours,
+        publisher
+        from
+        news_headline
+        <where>
+            <if test="keyWords !=null and keyWords!=''">
+                and title like concat('%',#{keyWords},'%')
+            </if>
+            <if test="type !=null and type!=0">
+                and type=#{type}
+            </if>
+            and is_deleted=0
+        </where>
+        order by pastHours,page_views DESC
+    </select>
+
+    <!--业务3:
+    根据头条ID查询头条详细信息
+    HeadlineDetailVo findHeadlineDetail(Integer hid);
+    -->
+    <select id="findHeadlineDetail" resultType="com.erfu.topNews.pojo.vo.HeadlineDetailVo">
+        select hid,
+               title,
+               article,
+               type,
+               tname                                   typeName,
+               page_views,
+               TIMESTAMPDIFF(HOUR, create_time, now()) pastHours,
+               publisher,
+               nick_name                               author
+        from news_headline h
+                 left join
+             news_type t
+             on
+                 h.type = t.tid
+                 left join
+             news_user u
+             on
+                 h.publisher = u.uid
+        where hid = #{hid}
+    </select>
+
+    <!--业务4:
+    增加头条浏览量
+    int increasePageViews(Integer hid);
+    -->
+    <update id="increasePageViews">
+        update news_headline
+        set page_views=page_views + 1
+        where hid = #{hid}
+    </update>
+
+
+    <!--
+    根据头条ID查询头条信息
+    Headline findByHid(Integer hid);
+    -->
+    <select id="findByHid" resultType="com.erfu.topNews.pojo.Headline">
+        select hid,
+               title,
+               article,
+               type,
+               publisher,
+               page_views,
+               create_time,
+               update_time,
+               is_deleted
+        from news_headline
+        where hid = #{hid}
+    </select>
+
+    <!--
+更新数据库中的头条信息
+int updateHeadline(Headline headline);
+-->
+    <update id="updateHeadline">
+        update
+            news_headline
+        set title       = #{title},
+            article     = #{article},
+            type        = #{type},
+            update_time = now()
+        where hid = #{hid}
+    </update>
+
+
+    <!--
+    向数据库中添加新的头条信息
+    int addHeadline(Headline headline);
+    -->
+    <insert id="addHeadline">
+        insert into
+            news_headline
+        values(
+                  default,
+                  #{title},
+                  #{article},
+                  #{type},
+                  #{publisher},
+                  0,
+                  now(),
+                  now(),
+                  0
+              )
+    </insert>
+
+    <!--
+    根据头条ID逻辑删除头条信息
+    int removeByHid(Integer hid);
+    -->
+    <update id="removeByHid">
+        update news_headline set is_deleted = 1, update_time = now() where hid = #{hid}
+    </update>
+</mapper>
